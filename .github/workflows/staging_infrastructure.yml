@@ -48,3 +48,5 @@ jobs:
         run: |
           echo "STORAGE_ACCOUNT_NAME=$(terraform output -raw storage_account_name)" >> $GITHUB_OUTPUT
           echo "STORAGE_ACCOUNT_KEY=$(terraform output -raw storage_account_key)" >> $GITHUB_OUTPUT
+
+# testing
