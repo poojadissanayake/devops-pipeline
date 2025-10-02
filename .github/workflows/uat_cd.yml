@@ -69,9 +69,9 @@ jobs:
       - name: Deploy services
         run: |
           cd k8s
-          kubectl apply -f product_service.yaml
-          kubectl apply -f order_service.yaml
-          kubectl apply -f customer_service.yaml
+          kubectl apply -f product-service.yaml
+          kubectl apply -f order-service.yaml
+          kubectl apply -f customer-service.yaml
           kubectl apply -f frontend.yaml
 
       - name: Wait for frontend IP
