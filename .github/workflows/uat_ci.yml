@@ -27,28 +27,24 @@ jobs:
 
       - name: Build and push Product Service
         run: |
-          TAG=${{ github.event.workflow_run.head_sha }}
           ACR=${{ secrets.AZURE_CONTAINER_REGISTRY }}.azurecr.io
-          docker build -t $ACR/product_service:$TAG ./backend/product_service
-          docker push $ACR/product_service:$TAG
+          docker build -t $ACR/product_service:latest ./backend/product_service
+          docker push $ACR/product_service:latest
 
       - name: Build and push Order Service
         run: |
-          TAG=${{ github.event.workflow_run.head_sha }}
           ACR=${{ secrets.AZURE_CONTAINER_REGISTRY }}.azurecr.io
-          docker build -t $ACR/order_service:$TAG ./backend/order_service
-          docker push $ACR/order_service:$TAG
+          docker build -t $ACR/order_service:latest ./backend/order_service
+          docker push $ACR/order_service:latest
 
       - name: Build and push Customer Service
         run: |
-          TAG=${{ github.event.workflow_run.head_sha }}
           ACR=${{ secrets.AZURE_CONTAINER_REGISTRY }}.azurecr.io
-          docker build -t $ACR/customer_service:$TAG ./backend/customer_service
-          docker push $ACR/customer_service:$TAG
+          docker build -t $ACR/customer_service:latest ./backend/customer_service
+          docker push $ACR/customer_service:latest
 
       - name: Build and push Frontend
         run: |
-          TAG=${{ github.event.workflow_run.head_sha }}
           ACR=${{ secrets.AZURE_CONTAINER_REGISTRY }}.azurecr.io
-          docker build -t $ACR/frontend:$TAG ./frontend
-          docker push $ACR/frontend:$TAG
+          docker build -t $ACR/frontend:latest ./frontend
+          docker push $ACR/frontend:latest
