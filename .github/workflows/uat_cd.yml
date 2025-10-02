@@ -103,6 +103,7 @@ jobs:
           node-version: 18
 
       - name: Install dependencies
+        working-directory: .
         run: |
           if [ -f package-lock.json ]; then
             npm ci
@@ -111,9 +112,11 @@ jobs:
           fi
 
       - name: Install Playwright Browsers
+        working-directory: .
         run: npx playwright install --with-deps
 
       - name: Run Playwright tests on staging
+        working-directory: .
         env:
           BASE_URL: ${{ env.FRONTEND }}
         run: npx playwright test --reporter=html
