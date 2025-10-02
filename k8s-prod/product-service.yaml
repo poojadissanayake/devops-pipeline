@@ -61,6 +61,21 @@ spec:
                 configMapKeyRef:
                   name: ecommerce-config
                   key: AZURE_SAS_TOKEN_EXPIRY_HOURS
+            - name: RABBITMQ_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: ecommerce-config
+                  key: RABBITMQ_HOST
+            - name: RABBITMQ_USER
+              valueFrom:
+                secretKeyRef:
+                  name: ecommerce-secret
+                  key: RABBITMQ_USER
+            - name: RABBITMQ_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: ecommerce-secret
+                  key: RABBITMQ_PASS
 ---
 apiVersion: v1
 kind: Service
