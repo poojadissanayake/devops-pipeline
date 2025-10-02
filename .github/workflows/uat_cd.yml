@@ -8,7 +8,7 @@ on:
 
 jobs:
   deploy_all:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event.workflow_run.conclusion == 'success'}}
     runs-on: ubuntu-latest
 
     steps:
@@ -28,7 +28,7 @@ jobs:
           resource-group: ${{ vars.AKS_RESOURCE_GROUP }}
           cluster-name: ${{ vars.AKS_CLUSTER_NAME }}
 
-      - name: Deploy all services
+      - name: Deploy Backend Infrastructure (ConfigMaps, Secrets, Databases)
         run: |
           cd k8s
           kubectl apply -f configmaps.yaml
@@ -36,9 +36,42 @@ jobs:
           kubectl apply -f product-db.yaml
           kubectl apply -f order-db.yaml
           kubectl apply -f customer-db.yaml
-          kubectl apply -f product-service.yaml
-          kubectl apply -f order-service.yaml
-          kubectl apply -f customer-service.yaml
+
+      - name: Add Storage keys to ecommerce-secret
+        shell: bash
+        run: |
+          set -e
+          NS=default
+
+          SA_NAME='${{ secrets.STORAGE_ACCOUNT_NAME }}'
+          if [ -z "$SA_NAME" ]; then
+            echo "STORAGE_ACCOUNT_NAME secret is not set." >&2
+            exit 1
+          fi
+
+          RG='${{ vars.AKS_RESOURCE_GROUP }}'
+
+          # get the storage account key
+          SA_KEY=$(az storage account keys list -g "$RG" -n "$SA_NAME" --query "[0].value" -o tsv)
+          if [ -z "$SA_KEY" ]; then
+            echo "Failed to retrieve key for storage account '$SA_NAME' in RG '$RG'." >&2
+            exit 1
+          fi
+
+          # patch the secret with storage account name and key
+          kubectl -n "$NS" patch secret ecommerce-secret \
+            --type merge \
+            -p "{\"stringData\":{
+              \"AZURE_STORAGE_ACCOUNT_NAME\":\"$SA_NAME\",
+              \"AZURE_STORAGE_ACCOUNT_KEY\":\"$SA_KEY\"
+            }}"
+
+      - name: Deploy services
+        run: |
+          cd k8s
+          kubectl apply -f product_service.yaml
+          kubectl apply -f order_service.yaml
+          kubectl apply -f customer_service.yaml
           kubectl apply -f frontend.yaml
 
       - name: Wait for frontend IP
