@@ -1,0 +1,50 @@
+name: Infrastructure - Provision Staging environment
+
+on:
+  push:
+    branches:
+      - testing
+    paths:
+      - ".terraform/**"
+      - ".github/workflows/staging_infrastructure.yml"
+  workflow_dispatch:
+
+jobs:
+  terraform_apply:
+    runs-on: ubuntu-latest
+    env:
+      TF_VAR_staging_rg_name: ${{ vars.AKS_RESOURCE_GROUP }}
+      TF_VAR_staging_aks_name: ${{ vars.AKS_CLUSTER_NAME }}
+      TF_VAR_acr_name: ${{ secrets.AZURE_CONTAINER_REGISTRY }}
+      TF_VAR_storage_account_name: ${{ secrets.STORAGE_ACCOUNT_NAME }}
+      TF_VAR_location: ${{ vars.LOCATION }}
+
+    outputs:
+      STORAGE_ACCOUNT_NAME: ${{ steps.tf_out.outputs.STORAGE_ACCOUNT_NAME }}
+      STORAGE_ACCOUNT_KEY: ${{ steps.tf_out.outputs.STORAGE_ACCOUNT_KEY }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init
+        working-directory: .terraform
+        run: terraform init
+
+      - name: Terraform Apply
+        working-directory: .terraform
+        run: terraform apply -auto-approve
+
+      - name: Capture Terraform outputs
+        id: tf_out
+        working-directory: .terraform
+        run: |
+          echo "STORAGE_ACCOUNT_NAME=$(terraform output -raw storage_account_name)" >> $GITHUB_OUTPUT
+          echo "STORAGE_ACCOUNT_KEY=$(terraform output -raw storage_account_key)" >> $GITHUB_OUTPUT

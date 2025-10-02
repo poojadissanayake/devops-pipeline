@@ -1,0 +1,54 @@
+name: CI - Build and Push all services
+
+on:
+  workflow_run:
+    workflows: ["Infrastructure - Provision Staging environment"]
+    types:
+      - completed
+
+jobs:
+  build_and_push_all:
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'testing' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout triggering commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Azure login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: ACR login
+        run: az acr login --name ${{ secrets.AZURE_CONTAINER_REGISTRY }}
+
+      - name: Build and push Product Service
+        run: |
+          TAG=${{ github.event.workflow_run.head_sha }}
+          ACR=${{ secrets.AZURE_CONTAINER_REGISTRY }}.azurecr.io
+          docker build -t $ACR/product_service:$TAG ./backend/product_service
+          docker push $ACR/product_service:$TAG
+
+      - name: Build and push Order Service
+        run: |
+          TAG=${{ github.event.workflow_run.head_sha }}
+          ACR=${{ secrets.AZURE_CONTAINER_REGISTRY }}.azurecr.io
+          docker build -t $ACR/order_service:$TAG ./backend/order_service
+          docker push $ACR/order_service:$TAG
+
+      - name: Build and push Customer Service
+        run: |
+          TAG=${{ github.event.workflow_run.head_sha }}
+          ACR=${{ secrets.AZURE_CONTAINER_REGISTRY }}.azurecr.io
+          docker build -t $ACR/customer_service:$TAG ./backend/customer_service
+          docker push $ACR/customer_service:$TAG
+
+      - name: Build and push Frontend
+        run: |
+          TAG=${{ github.event.workflow_run.head_sha }}
+          ACR=${{ secrets.AZURE_CONTAINER_REGISTRY }}.azurecr.io
+          docker build -t $ACR/frontend:$TAG ./frontend
+          docker push $ACR/frontend:$TAG

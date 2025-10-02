@@ -1,0 +1,65 @@
+name: CD - Deploy to Staging
+
+on:
+  workflow_run:
+    workflows: ["CI - Build and Push all services"]
+    types:
+      - completed
+
+jobs:
+  deploy_all:
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'testing' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout triggering commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Set AKS context
+        uses: azure/aks-set-context@v3
+        with:
+          resource-group: ${{ vars.AKS_RESOURCE_GROUP }}
+          cluster-name: ${{ vars.AKS_CLUSTER_NAME }}
+
+      - name: Deploy all services
+        run: |
+          cd k8s-staging
+          kubectl apply -f configmaps.yaml
+          kubectl apply -f secrets.yaml
+          kubectl apply -f product-db.yaml
+          kubectl apply -f order-db.yaml
+          kubectl apply -f customer-db.yaml
+          kubectl apply -f product-service.yaml
+          kubectl apply -f order-service.yaml
+          kubectl apply -f customer-service.yaml
+          kubectl apply -f frontend.yaml
+
+      - name: Wait for frontend IP
+        id: ip
+        run: |
+          for i in {1..60}; do
+            EP=$(kubectl get svc frontend -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+            if [ -n "$EP" ]; then
+              echo "FRONTEND=http://$EP" >> $GITHUB_ENV
+              exit 0
+            fi
+            echo "Waiting for frontend LB IP... ($i/60)"
+            sleep 5
+          done
+          echo "Timeout waiting for frontend IP" >&2
+          exit 1
+
+      - name: Run acceptance tests
+        run: |
+          set -e
+          echo "Testing frontend at $FRONTEND"
+          curl -fsS "$FRONTEND/api/products/"   | head -c 200
+          curl -fsS "$FRONTEND/api/orders/"     | head -c 200
+          curl -fsS "$FRONTEND/api/customers/"  | head -c 200
