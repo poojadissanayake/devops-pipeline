@@ -13,10 +13,10 @@ jobs:
         runs-on: ubuntu-latest
 
         steps:
-            - name: Checkout same commit that deployed
+            - name: Checkout test branch
               uses: actions/checkout@v4
               with:
-                  ref: ${{ github.event.workflow_run.head_sha }}
+                  ref: refs/heads/testing
 
             - name: Azure Login
               uses: azure/login@v1
