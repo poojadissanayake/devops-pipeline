@@ -3,7 +3,9 @@ name: E2E - Playwright on Staging
 on:
     workflow_run:
         workflows: ["CD - Deploy to Staging"]
-        types: [completed]
+        types:
+            - completed
+    workflow_dispatch:
 
 jobs:
     e2e_tests:
