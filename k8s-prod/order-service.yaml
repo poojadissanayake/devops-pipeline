@@ -54,6 +54,11 @@ spec:
                 configMapKeyRef:
                   name: ecommerce-config
                   key: RABBITMQ_HOST
+            - name: RABBITMQ_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: ecommerce-config
+                  key: RABBITMQ_PORT
             - name: RABBITMQ_USER
               valueFrom:
                 secretKeyRef:
