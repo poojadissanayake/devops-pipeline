@@ -12,6 +12,7 @@ data:
   PRODUCT_SERVICE_URL: http://product-service:8000
   ORDER_SERVICE_URL: http://order-service:8000
   CUSTOMER_SERVICE_URL: http://customer-service:8000
+  RABBITMQ_SERVICE_URL: rabbitmq-service
 
   # Product image storage
   AZURE_STORAGE_CONTAINER_NAME: product-images
