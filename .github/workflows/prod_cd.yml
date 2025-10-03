@@ -1,0 +1,117 @@
+name: CD - Production (CI/CD)
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - closed
+
+    # trigger if E2E tests passed in staging
+  workflow_run:
+    workflows: ["E2E - Playwright on Staging"]
+    types:
+      - completed
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy_prod:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: ACR login
+        run: az acr login --name ${{ secrets.PROD_AZURE_CONTAINER_REGISTRY }}
+
+      - name: Get AKS credentials
+        run: |
+          az aks get-credentials \
+            --resource-group "${{ vars.PROD_AKS_RESOURCE_GROUP }}" \
+            --name "${{ vars.PROD_AKS_CLUSTER_NAME }}" \
+            --overwrite-existing
+          kubectl cluster-info
+
+      # backend: config + secrets + DBs
+      - name: Apply backend infra manifests
+        run: |
+          cd k8s-prod
+          kubectl apply -f configmaps.yaml
+          kubectl apply -f secrets.yaml
+          kubectl apply -f product-db.yaml
+          kubectl apply -f order-db.yaml
+          kubectl apply -f customer-db.yaml
+
+      # Inject Storage creds into ecommerce-secret for product-service
+      - name: Ensure storage keys are in ecommerce-secret
+        shell: bash
+        run: |
+          set -e
+          NS=default
+          SA_NAME='${{ secrets.PROD_STORAGE_ACCOUNT_NAME }}'
+          if [ -z "$SA_NAME" ]; then
+            echo "Missing PROD_STORAGE_ACCOUNT_NAME secret"; exit 1
+          fi
+
+          # Prefer a pre-supplied key if you added PROD_STORAGE_ACCOUNT_KEY
+          SA_KEY='${{ secrets.PROD_STORAGE_ACCOUNT_KEY }}'
+
+          if [ -z "$SA_KEY" ]; then
+            echo "No PROD_STORAGE_ACCOUNT_KEY provided; discovering RG and fetching a key..."
+            SA_RG=$(az storage account show -n "$SA_NAME" --query resourceGroup -o tsv)
+            if [ -z "$SA_RG" ]; then
+              echo "Could not discover RG for storage account $SA_NAME"; exit 1
+            fi
+            SA_KEY=$(az storage account keys list -g "$SA_RG" -n "$SA_NAME" --query "[0].value" -o tsv)
+            if [ -z "$SA_KEY" ]; then
+              echo "Failed to retrieve storage key for $SA_NAME"; exit 1
+            fi
+          fi
+
+          # Merge keys into the core secret (created by secrets.yaml)
+          kubectl -n "$NS" patch secret ecommerce-secret \
+            --type merge \
+            -p "{\"stringData\":{
+              \"AZURE_STORAGE_ACCOUNT_NAME\":\"$SA_NAME\",
+              \"AZURE_STORAGE_ACCOUNT_KEY\":\"$SA_KEY\"
+            }}"
+
+      # backend services (Deployments + Services)
+      - name: Deploy backend services
+        run: |
+          cd k8s-prod
+          kubectl apply -f product-service.yaml
+          kubectl apply -f order-service.yaml
+          kubectl apply -f customer-service.yaml
+
+      - name: Wait for backend deployments rollout
+        run: |
+          kubectl rollout status deployment/product-service --timeout=5m
+          kubectl rollout status deployment/order-service --timeout=5m
+          kubectl rollout status deployment/customer-service --timeout=5m
+
+      - name: Build & push frontend image
+        run: |
+          docker build -t ${{ secrets.PROD_AZURE_CONTAINER_REGISTRY }}.azurecr.io/frontend:latest ./frontend
+          docker push    ${{ secrets.PROD_AZURE_CONTAINER_REGISTRY }}.azurecr.io/frontend:latest
+
+      - name: Deploy frontend
+        run: kubectl apply -f k8s-prod/frontend.yaml
+
+      - name: Wait for frontend rollout
+        run: kubectl rollout status deploy/frontend --timeout=5m
+
+      - name: Done
+        run: echo "Production deployment completed successfully!"
