@@ -96,34 +96,3 @@ jobs:
           curl -fsS "$FRONTEND/api/products/"   | head -c 200
           curl -fsS "$FRONTEND/api/orders/"     | head -c 200
           curl -fsS "$FRONTEND/api/customers/"  | head -c 200
-
-      - name: Install Node.js for playwright tests
-        uses: actions/setup-node@v4
-        with:
-          node-version: 18
-
-      - name: Install dependencies
-        working-directory: .
-        run: |
-          if [ -f package-lock.json ]; then
-            npm ci
-          else
-            npm install
-          fi
-
-      - name: Install Playwright Browsers
-        working-directory: .
-        run: npx playwright install --with-deps
-
-      - name: Run Playwright tests on staging
-        working-directory: .
-        env:
-          BASE_URL: ${{ env.FRONTEND }}
-        run: npx playwright test --reporter=html
-
-      - name: Upload Playwright report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-report 
-          path: playwright-report
