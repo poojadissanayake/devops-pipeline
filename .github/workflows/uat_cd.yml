@@ -36,6 +36,7 @@ jobs:
           kubectl apply -f product-db.yaml
           kubectl apply -f order-db.yaml
           kubectl apply -f customer-db.yaml
+          kubectl apply -f rabbitmq.yaml
 
       - name: Add Storage keys to ecommerce-secret
         shell: bash

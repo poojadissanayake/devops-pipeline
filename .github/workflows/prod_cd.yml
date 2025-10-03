@@ -77,6 +77,7 @@ jobs:
           kubectl apply -f product-db.yaml
           kubectl apply -f order-db.yaml
           kubectl apply -f customer-db.yaml
+          kubectl apply -f rabbitmq.yaml
 
       # Inject Storage creds into ecommerce-secret for product-service
       - name: Ensure storage keys are in ecommerce-secret
