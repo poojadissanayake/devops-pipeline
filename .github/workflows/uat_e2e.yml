@@ -1,0 +1,75 @@
+name: E2E - Playwright on Staging
+
+on:
+    workflow_run:
+        workflows: ["CD - Deploy to Staging"]
+        types: [completed]
+
+jobs:
+    e2e_tests:
+        if: ${{ github.event.workflow_run.conclusion == 'success' }}
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout same commit that deployed
+              uses: actions/checkout@v4
+              with:
+                  ref: ${{ github.event.workflow_run.head_sha }}
+
+            - name: Azure Login
+              uses: azure/login@v1
+              with:
+                  creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+            - name: Set AKS context
+              uses: azure/aks-set-context@v3
+              with:
+                  resource-group: ${{ vars.AKS_RESOURCE_GROUP }}
+                  cluster-name: ${{ vars.AKS_CLUSTER_NAME }}
+
+            - name: Resolve Frontend IP
+              id: ip
+              run: |
+                  for i in {1..60}; do
+                    EP=$(kubectl get svc frontend -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+                    if [ -n "$EP" ]; then
+                      echo "BASE_URL=http://$EP" >> $GITHUB_ENV
+                      echo "base_url=http://$EP" >> $GITHUB_OUTPUT
+                      exit 0
+                    fi
+                    echo "Waiting for frontend LB IP... ($i/60)"
+                    sleep 5
+                  done
+                  echo "Timed out waiting for frontend IP" >&2
+                  exit 1
+
+            - name: Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 18
+
+            - name: Debug working directory
+              run: pwd
+
+            - name: Install deps
+              run: |
+                  if [ -f package-lock.json ]; then
+                    npm ci
+                  else
+                    npm install
+                  fi
+
+            - name: Install Playwright browsers
+              run: npx playwright install --with-deps
+
+            - name: Run Playwright (against staging)
+              env:
+                  BASE_URL: ${{ env.BASE_URL }}
+              run: npx playwright test --reporter=html
+
+            - name: Upload Playwright report
+              if: always()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: playwright-report
+                  path: playwright-report
