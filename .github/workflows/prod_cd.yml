@@ -2,16 +2,29 @@ name: CD - Production (CI/CD)
 
 on:
   workflow_run:
-    workflows: ["E2E - Playwright on Staging"]
+    # debugging trigger issue
+    workflows: ["*"]
     types:
       - completed
 jobs:
   deploy_prod:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    name: Deploy to Production
+    # only run when the E2E workflow finished successfully
+    if: >
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.name == 'E2E - Playwright on Staging' &&
+      github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     environment: production
 
     steps:
+      - name: Debug event payload
+        run: |
+          echo "WORKFLOW NAME: ${{ github.event.workflow_run.name }}"
+          echo "CONCLUSION: ${{ github.event.workflow_run.conclusion }}"
+          echo "HEAD BRANCH: ${{ github.event.workflow_run.head_branch }}"
+          echo "HEAD SHA: ${{ github.event.workflow_run.head_sha }}"
+          echo "REPO: ${{ github.repository }}"
       - name: Checkout repo
         uses: actions/checkout@v4
         with:
