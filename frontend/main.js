@@ -1,9 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     // API endpoints for the Product, Order, and Customer services.
     // These ports are mapped from the Docker containers to the host machine in docker-compose.yml.
-    const PRODUCT_API_BASE_URL = '/api';
-    const ORDER_API_BASE_URL = '/api';
-    const CUSTOMER_API_BASE_URL = '/api';
+    const BASE_URL = '/api';
 
     // DOM Elements
     const messageBox = document.getElementById('message-box');
@@ -44,7 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function fetchProducts() {
         productListDiv.innerHTML = '<p>Loading products...</p>';
         try {
-            const response = await fetch(`${PRODUCT_API_BASE_URL}/products/`);
+            const response = await fetch(`${BASE_URL}/products/`);
             if (!response.ok) {
                 const errorData = await response.json();
                 throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
@@ -103,7 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const newProduct = { name, price, stock_quantity, description };
 
         try {
-            const response = await fetch(`${PRODUCT_API_BASE_URL}/products/`, {
+            const response = await fetch(`${BASE_URL}/products/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -135,7 +133,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             try {
-                const response = await fetch(`${PRODUCT_API_BASE_URL}/products/${productId}`, {
+                const response = await fetch(`${BASE_URL}/products/${productId}`, {
                     method: 'DELETE',
                 });
 
@@ -177,7 +175,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             try {
                 showMessage(`Uploading image for product ${productId}...`, 'info');
-                const response = await fetch(`${PRODUCT_API_BASE_URL}/products/${productId}/upload-image`, {
+                const response = await fetch(`${BASE_URL}/products/${productId}/upload-image`, {
                     method: 'POST',
                     body: formData,
                 });
@@ -246,7 +244,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function fetchCustomers() {
         customerListDiv.innerHTML = '<p>Loading customers...</p>';
         try {
-            const response = await fetch(`${CUSTOMER_API_BASE_URL}/customers/`);
+            const response = await fetch(`${BASE_URL}/customers/`);
             if (!response.ok) {
                 const errorData = await response.json();
                 throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
@@ -296,7 +294,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const newCustomer = { email, password, first_name, last_name, phone_number, shipping_address };
 
         try {
-            const response = await fetch(`${CUSTOMER_API_BASE_URL}/customers/`, {
+            const response = await fetch(`${BASE_URL}/customers/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -327,7 +325,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             try {
-                const response = await fetch(`${CUSTOMER_API_BASE_URL}/customers/${customerId}`, {
+                const response = await fetch(`${BASE_URL}/customers/${customerId}`, {
                     method: 'DELETE',
                 });
 
@@ -377,7 +375,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Order service will now create order with 'pending' status
             // and publish an event for stock deduction.
             showMessage("Placing order... (status will update asynchronously)", 'info');
-            const response = await fetch(`${ORDER_API_BASE_URL}/orders/`, {
+            const response = await fetch(`${BASE_URL}/orders/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -408,7 +406,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function fetchOrders() {
         orderListDiv.innerHTML = '<p>Loading orders...</p>';
         try {
-            const response = await fetch(`${ORDER_API_BASE_URL}/orders/`);
+            const response = await fetch(`${BASE_URL}/orders/`);
             if (!response.ok) {
                 const errorData = await response.json();
                 throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
@@ -479,7 +477,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             try {
                 showMessage(`Updating status for order ${orderId} to "${newStatus}"...`, 'info');
-                const response = await fetch(`${ORDER_API_BASE_URL}/orders/${orderId}/status`, { // PATCH request now uses body
+                const response = await fetch(`${BASE_URL}/orders/${orderId}/status`, { // PATCH request now uses body
                     method: 'PATCH',
                     headers: {
                         'Content-Type': 'application/json',
@@ -509,7 +507,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             try {
-                const response = await fetch(`${ORDER_API_BASE_URL}/orders/${orderId}`, {
+                const response = await fetch(`${BASE_URL}/orders/${orderId}`, {
                     method: 'DELETE',
                 });
 
