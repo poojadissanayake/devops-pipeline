@@ -36,6 +36,7 @@ jobs:
           kubectl apply -f product-db.yaml
           kubectl apply -f order-db.yaml
           kubectl apply -f customer-db.yaml
+          kubectl apply -f rabbitmq.yaml
 
       - name: Add Storage keys to ecommerce-secret
         shell: bash
@@ -89,7 +90,7 @@ jobs:
           echo "Timeout waiting for frontend IP" >&2
           exit 1
 
-      - name: Run acceptance tests
+      - name: Run smoke checks
         run: |
           set -e
           echo "Testing frontend at $FRONTEND"

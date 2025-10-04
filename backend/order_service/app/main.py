@@ -549,7 +549,7 @@ async def update_order_status(
             status_code=status.HTTP_404_NOT_FOUND, detail="Order not found"
         )
 
-    db_order.status = new_status
+    db_order.status = new_status.status
 
     try:
         db.add(db_order)

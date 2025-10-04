@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: order-service-w10t2
+  name: order-service
   labels:
     app: order-service
 spec:
@@ -49,11 +49,31 @@ spec:
                 configMapKeyRef:
                   name: ecommerce-config
                   key: CUSTOMER_SERVICE_URL
+            - name: RABBITMQ_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: ecommerce-config
+                  key: RABBITMQ_HOST
+            - name: RABBITMQ_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: ecommerce-config
+                  key: RABBITMQ_PORT
+            - name: RABBITMQ_USER
+              valueFrom:
+                secretKeyRef:
+                  name: ecommerce-secret
+                  key: RABBITMQ_USER
+            - name: RABBITMQ_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: ecommerce-secret
+                  key: RABBITMQ_PASS
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: order-service-w10t2
+  name: order-service
   labels:
     app: order-service
 spec:

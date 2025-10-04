@@ -1,6 +1,22 @@
 version: "3.8"
 
 services:
+  # RabbitMQ Message Broker
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: rabbitmq
+    restart: always
+    ports:
+      - "5672:5672" # Standard AMQP port
+      - "15672:15672" # Management UI (accessible via http://localhost:15672)
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
   product_db:
     image: postgres:15-alpine
     container_name: product_db_container
@@ -55,18 +71,6 @@ services:
       timeout: 5s
       retries: 10
 
-  rabbitmq:
-    image: rabbitmq:3.13-management
-    container_name: rabbitmq
-    ports:
-      - "5672:5672" # AMQP
-      - "15672:15672" # Management UI (http://localhost:15672, user/pass: guest/guest)
-    healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-
   product_service:
     build:
       context: ./backend/product_service
@@ -86,6 +90,10 @@ services:
       AZURE_STORAGE_ACCOUNT_KEY: <your_storage_account_key>
       AZURE_STORAGE_CONTAINER_NAME: <your_container_name>
       AZURE_SAS_TOKEN_EXPIRY_HOURS: 24
+      RabbitMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: guest
+      RABBITMQ_PASS: guest
     depends_on:
       product_db:
         condition: service_healthy
@@ -109,7 +117,10 @@ services:
       POSTGRES_PASSWORD: postgres
       PRODUCT_SERVICE_URL: http://product_service:8000
       CUSTOMER_SERVICE_URL: http://customer_service:8000
-      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      RabbitMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: guest
+      RABBITMQ_PASS: guest
     depends_on:
       order_db:
         condition: service_healthy
@@ -154,7 +165,7 @@ services:
     ports:
       - "3000:80" # browse http://localhost:3000
     volumes:
-      - ./frontend:/usr/share/nginx/html:ro
+      - ./frontend:/usr/share/nginx/html
     depends_on:
       product_service:
         condition: service_started
